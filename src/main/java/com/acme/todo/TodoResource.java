@@ -1,16 +1,17 @@
 package com.acme.todo;
 
-import io.quarkus.hibernate.reactive.panache.Panache;
-import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Sort;
-import io.smallrye.mutiny.Uni;
+import io.smallrye.common.annotation.NonBlocking;
+import io.smallrye.common.annotation.RunOnVirtualThread;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
 import java.util.List;
+
 
 @Path("/api")
 public class TodoResource {
@@ -20,75 +21,75 @@ public class TodoResource {
     }
 
     @OPTIONS
+    @NonBlocking
     public Response opt() {
         return Response.ok().build();
     }
 
     @GET
-    public Uni<List<Todo>> getAll() {
+    @RunOnVirtualThread
+    public List<Todo> getAll() {
         log();
-        return Panache.withTransaction(
-                () -> Todo.findAll(Sort.by("order")).list()
-        );
+        return Todo.listAll(Sort.by("order"));
     }
 
     @GET
     @Path("/{id}")
-    public Uni<Todo> getOne(@PathParam("id") Long id) {
-        return Panache.withTransaction(
-                () -> Todo.<Todo>findById(id)
-                        .onItem().ifNull().failWith(() ->
-                                new WebApplicationException("Todo with id of " + id + " does not exist.", Status.NOT_FOUND)
-                        ));
+    @RunOnVirtualThread
+    public Todo getOne(@PathParam("id") Long id) {
+        log();
+        Todo entity = Todo.findById(id);
+        if (entity == null) {
+            throw new WebApplicationException("Todo with id of " + id + " does not exist.", Status.NOT_FOUND);
+        }
+        return entity;
     }
 
     @POST
-    public Uni<Response> create(@Valid Todo item) {
+    @Transactional
+    @RunOnVirtualThread
+    public Response create(@Valid Todo item) {
         log();
-        return Panache.withTransaction(item::persist)
-                .replaceWith(
-                        () -> Response.status(Status.CREATED).entity(item).build()
-                );
+        item.persist();
+        return Response.status(Status.CREATED).entity(item).build();
     }
 
     @PATCH
     @Path("/{id}")
-    public Uni<Todo> update(@Valid Todo todo, @PathParam("id") Long id) {
+    @Transactional
+    @RunOnVirtualThread
+    public Response update(@Valid Todo todo, @PathParam("id") Long id) {
         log();
-        return Panache.withTransaction(
-                () -> Todo.<Todo>findById(id)
-                        .onItem().transform(entity -> {
-                            entity.id = id;
-                            entity.completed = todo.completed;
-                            entity.order = todo.order;
-                            entity.title = todo.title;
-                            entity.url = todo.url;
-                            return entity;
-                        })
-        );
+        Todo entity = Todo.findById(id);
+        entity.id = id;
+        entity.completed = todo.completed;
+        entity.order = todo.order;
+        entity.title = todo.title;
+        entity.url = todo.url;
+        return Response.ok(entity).build();
     }
 
     @DELETE
-    public Uni<Response> deleteCompleted() {
-        return Panache.withTransaction(
-                Todo::deleteCompleted
-        ).replaceWith(
-                () -> Response.noContent().build()
-        );
+    @Transactional
+    @RunOnVirtualThread
+    public Response deleteCompleted() {
+        log();
+        Todo.deleteCompleted();
+        return Response.noContent().build();
     }
 
     @DELETE
+    @Transactional
     @Path("/{id}")
-    public Uni<Response> deleteOne(@PathParam("id") Long id) {
-        return Panache.withTransaction(
-                () -> Todo.findById(id)
-                        .onItem().ifNull().failWith(() ->
-                                new WebApplicationException("Todo with id of " + id + " does not exist.", Status.NOT_FOUND)
-                        )
-                        .call(PanacheEntityBase::delete)
-        ).replaceWith(
-                () -> Response.noContent().build()
-        );
+    @RunOnVirtualThread
+    public Response deleteOne(@PathParam("id") Long id) {
+        log();
+        Todo entity = Todo.findById(id);
+        if (entity == null) {
+            throw new WebApplicationException("Todo with id of " + id + " does not exist.", Status.NOT_FOUND);
+        }
+        entity.delete();
+        return Response.noContent().build();
     }
 
 }

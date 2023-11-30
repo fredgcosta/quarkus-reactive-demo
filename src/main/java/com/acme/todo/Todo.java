@@ -1,7 +1,6 @@
 package com.acme.todo;
 
-import io.quarkus.hibernate.reactive.panache.PanacheEntity;
-import io.smallrye.mutiny.Uni;
+import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.validation.constraints.NotBlank;
@@ -22,15 +21,15 @@ public class Todo extends PanacheEntity {
 
     public String url;
 
-    public static Uni<List<Todo>> findNotCompleted() {
+    public static List<Todo> findNotCompleted() {
         return list("completed", false);
     }
 
-    public static Uni<List<Todo>> findCompleted() {
+    public static List<Todo> findCompleted() {
         return list("completed", true);
     }
 
-    public static Uni<Long> deleteCompleted() {
+    public static long deleteCompleted() {
         return delete("completed", true);
     }
 
