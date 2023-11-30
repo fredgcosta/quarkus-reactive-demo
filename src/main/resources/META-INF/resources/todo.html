@@ -1,0 +1,57 @@
+<!doctype html>
+<html data-framework="vue">
+<head>
+    <meta charset="utf-8">
+    <title>Vue.js • TodoMVC</title>
+    <link href="node_modules/todomvc-common/base.css" rel="stylesheet">
+    <link href="node_modules/todomvc-app-css/index.css" rel="stylesheet">
+    <style> [v-cloak] {
+        display: none;
+    } </style>
+</head>
+<body>
+<section v-cloak class="todoapp">
+    <header class="header">
+        <h1>todos</h1>
+        <input v-model="newTodo" autocomplete="off" autofocus class="new-todo" placeholder="What needs to be done?"
+               @keyup.enter="addTodo">
+    </header>
+    <section v-show="todos.length" class="main">
+        <input id="toggle-all" v-model="allDone" class="toggle-all" type="checkbox">
+        <label for="toggle-all">Mark all as complete</label>
+        <ul class="todo-list">
+            <li v-for="todo in filteredTodos" :key="todo.id" :class="{completed: todo.completed, editing: todo == editedTodo}"
+                class="todo">
+                <div class="view">
+                    <input v-model="todo.completed" class="toggle" type="checkbox" @click="toggleTodo(todo)">
+                    <label @dblclick="editTodo(todo)">{{ todo.title }}</label>
+                    <button class="destroy" @click="removeTodo(todo)"></button>
+                </div>
+                <input v-model="todo.title" v-todo-focus="todo == editedTodo" class="edit" type="text"
+                       @blur="doneEdit(todo)" @keyup.enter="doneEdit(todo)" @keyup.esc="cancelEdit(todo)">
+            </li>
+        </ul>
+    </section>
+    <footer v-show="todos.length" class="footer">
+				<span class="todo-count">
+					<strong v-text="remaining"></strong> {{ pluralize('item', remaining) }} left
+				</span>
+        <ul class="filters">
+            <li><a :class="{selected: visibility == 'all'}" href="#/all">All</a></li>
+            <li><a :class="{selected: visibility == 'active'}" href="#/active">Active</a></li>
+            <li><a :class="{selected: visibility == 'completed'}" href="#/completed">Completed</a></li>
+        </ul>
+        <button v-show="todos.length > remaining" class="clear-completed" @click="removeCompleted">
+            Clear completed
+        </button>
+    </footer>
+</section>
+<script src="node_modules/todomvc-common/base.js"></script>
+<script src="node_modules/director/build/director.js"></script>
+<script src="node_modules/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="node_modules/vue-axios/dist/vue-axios.min.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script src="js/routes.js"></script>
+</body>
